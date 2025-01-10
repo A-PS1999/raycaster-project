@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "raylib.h"
+#include "raymath.h"
 #include "constants.h"
 
 void setup();
@@ -34,8 +35,7 @@ const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
 };
 
 struct Player {
-    float x;
-    float y;
+    Vector2 playerPos;
     float width;
     float height;
     int turnDirection; // -1 for left, 1 for right
@@ -47,8 +47,7 @@ struct Player {
 
 struct Ray {
     float rayAngle;
-    float wallHitX;
-    float wallHitY;
+    Vector2 wallHitPos;
     bool wasHitVertical;
     bool rayFacings[4];
     int wallHitContent;
@@ -75,8 +74,8 @@ int main()
 }
 
 void setup() {
-    gamePlayer.x = WINDOW_WIDTH / 2;
-    gamePlayer.y = WINDOW_HEIGHT / 2;
+    gamePlayer.playerPos.x = WINDOW_WIDTH / 2;
+    gamePlayer.playerPos.y = WINDOW_HEIGHT / 2;
     gamePlayer.width = 5;
     gamePlayer.height = 5;
     gamePlayer.turnDirection = 0;
@@ -141,12 +140,12 @@ void movePlayer(float deltaTime) {
     gamePlayer.rotationAngle += gamePlayer.turnDirection * gamePlayer.turnSpeed * deltaTime;
     float moveStep = gamePlayer.walkDirection * gamePlayer.walkSpeed * deltaTime;
     
-    float newPlayerX = gamePlayer.x + cos(gamePlayer.rotationAngle) * moveStep;
-    float newPlayerY = gamePlayer.y + sin(gamePlayer.rotationAngle) * moveStep;
+    float newPlayerX = gamePlayer.playerPos.x + cos(gamePlayer.rotationAngle) * moveStep;
+    float newPlayerY = gamePlayer.playerPos.y + sin(gamePlayer.rotationAngle) * moveStep;
 
     if (!wouldCollide(newPlayerX, newPlayerY)) {
-        gamePlayer.x = newPlayerX;
-        gamePlayer.y = newPlayerY;
+        gamePlayer.playerPos.x = newPlayerX;
+        gamePlayer.playerPos.y = newPlayerY;
     }
 }
 
@@ -195,10 +194,10 @@ void castRay(float rayAngle, int stripId) {
     int horizontalWallHitY = 0;
     int horizontalWallContent = 0;
 
-    yIntercept = floor(gamePlayer.y / TILE_SIZE) * TILE_SIZE;
+    yIntercept = floor(gamePlayer.playerPos.y / TILE_SIZE) * TILE_SIZE;
     yIntercept += isRayFacingDown ? TILE_SIZE : 0;
 
-    xIntercept = gamePlayer.x + (yIntercept - gamePlayer.y) / tan(rayAngle);
+    xIntercept = gamePlayer.playerPos.x + (yIntercept - gamePlayer.playerPos.y) / tan(rayAngle);
 
     yStep = TILE_SIZE;
     yStep *= !isRayFacingDown ? -1 : 1;
@@ -206,21 +205,79 @@ void castRay(float rayAngle, int stripId) {
     xStep = TILE_SIZE / tan(rayAngle);
     xStep *= (!isRayFacingRight && xStep > 0) ? -1 : 1;
     xStep *= (isRayFacingRight && xStep < 0) ? -1 : 1;
+
+    float nextHorizontalTouchX = xIntercept;
+    float nextHorizontalTouchY = yIntercept;
+
+    while (nextHorizontalTouchX >= 0 && nextHorizontalTouchX <= WINDOW_WIDTH && nextHorizontalTouchY >= 0 && nextHorizontalTouchY <= WINDOW_HEIGHT) {
+        float xToCheck = nextHorizontalTouchX;
+        float yToCheck = nextHorizontalTouchY + (!isRayFacingDown ? -1 : 0);
+
+        if (/*TODO*/) {
+            horizontalWallHitX = nextHorizontalTouchX;
+            horizontalWallHitY = nextHorizontalTouchY;
+            horizontalWallContent = map[(int)floor(yToCheck/TILE_SIZE)][(int)floor(xToCheck/TILE_SIZE)];
+            foundHorizontalWall = true;
+            break;
+        } else {
+            nextHorizontalTouchX += xStep;
+            nextHorizontalTouchY += yStep;
+        }
+    }
+
+    // Vertical intersection
+    bool foundVerticalWall = false;
+    int verticalWallHitX = 0;
+    int verticalWallHitY = 0;
+    int verticalWallContent = 0;
+
+    yIntercept = floor(gamePlayer.playerPos.x / TILE_SIZE) * TILE_SIZE;
+    yIntercept += isRayFacingRight ? TILE_SIZE : 0;
+
+    yIntercept = gamePlayer.playerPos.y + (xIntercept - gamePlayer.playerPos.x) / tan(rayAngle);
+
+    xStep = TILE_SIZE;
+    xStep *= !isRayFacingRight ? -1 : 1;
+
+    yStep = TILE_SIZE / tan(rayAngle);
+    yStep *= (!isRayFacingDown && xStep > 0) ? -1 : 1;
+    yStep *= (isRayFacingDown && xStep < 0) ? -1 : 1;
+
+    float nextVerticalTouchX = xIntercept;
+    float nextVerticalTouchY = yIntercept;
+
+    while (nextVerticalTouchX >= 0 && nextVerticalTouchX <= WINDOW_WIDTH && nextVerticalTouchY >= 0 && nextVerticalTouchY <= WINDOW_HEIGHT) {
+        float xToCheck = nextVerticalTouchX + (!isRayFacingRight ? -1 : 0);
+        float yToCheck = nextVerticalTouchY;
+
+        if (/*TODO*/) {
+            verticalWallHitX = nextVerticalTouchX;
+            verticalWallHitY = nextVerticalTouchY;
+            verticalWallContent = map[(int)floor(yToCheck/TILE_SIZE)][(int)floor(xToCheck/TILE_SIZE)];
+            foundVerticalWall = true;
+            break;
+        } else {
+            nextVerticalTouchX += xStep;
+            nextVerticalTouchY += yStep;
+        }
+    }
+
+    float horizontalHitDistance = foundHorizontalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){horizontalWallHitX, horizontalWallHitY}) : INT_MAX;
 }
 
 void drawPlayer() {
     DrawRectangle(
-        gamePlayer.x * MINIMAP_SCALE_FACTOR, 
-        gamePlayer.y * MINIMAP_SCALE_FACTOR, 
+        gamePlayer.playerPos.x * MINIMAP_SCALE_FACTOR, 
+        gamePlayer.playerPos.y * MINIMAP_SCALE_FACTOR, 
         gamePlayer.width * MINIMAP_SCALE_FACTOR, 
         gamePlayer.height * MINIMAP_SCALE_FACTOR,
         YELLOW
     );
     DrawLine(
-        gamePlayer.x + 2.5 * MINIMAP_SCALE_FACTOR, 
-        gamePlayer.y * MINIMAP_SCALE_FACTOR,
-        gamePlayer.x + 2.5 + cos(gamePlayer.rotationAngle) * 40,
-        gamePlayer.y + sin(gamePlayer.rotationAngle) * 40,
+        gamePlayer.playerPos.x + 2.5 * MINIMAP_SCALE_FACTOR, 
+        gamePlayer.playerPos.y * MINIMAP_SCALE_FACTOR,
+        gamePlayer.playerPos.x + 2.5 + cos(gamePlayer.rotationAngle) * 40,
+        gamePlayer.playerPos.y + sin(gamePlayer.rotationAngle) * 40,
         YELLOW
     );
 }
