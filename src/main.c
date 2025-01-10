@@ -10,6 +10,9 @@ void update();
 void handlePlayerMoveInput();
 bool wouldCollide(float newX, float newY);
 void movePlayer(float deltaTime);
+void castRays();
+void castRay(float rayAngle, int stripId);
+float normalizeAngle(float rayAngle);
 void render();
 void drawMap();
 void drawPlayer();
@@ -41,6 +44,15 @@ struct Player {
     float walkSpeed;
     float turnSpeed;
 } gamePlayer;
+
+struct Ray {
+    float rayAngle;
+    float wallHitX;
+    float wallHitY;
+    bool wasHitVertical;
+    bool rayFacings[4];
+    int wallHitContent;
+} rays[NUM_RAYS];
 
 int main() 
 {
@@ -78,6 +90,7 @@ void update() {
     float deltaTime = GetFrameTime();
     handlePlayerMoveInput();
     movePlayer(deltaTime);
+    castRays();
 }
 
 void drawMap() {
@@ -145,6 +158,54 @@ bool wouldCollide(float newX, float newY) {
     int mapXIdx = floor(newX / TILE_SIZE);
     int mapYIdx = floor(newY / TILE_SIZE);
     return map[mapYIdx][mapXIdx];
+}
+
+void castRays() {
+    float rayAngle = gamePlayer.rotationAngle - (FOV_ANGLE / 2);
+
+    for (int stripId = 0; stripId < NUM_RAYS; stripId++) {
+        castRay(rayAngle, stripId);
+
+        rayAngle += FOV_ANGLE / NUM_RAYS;
+    }
+}
+
+float normalizeAngle(float rayAngle) {
+    rayAngle = remainderf(rayAngle, TWO_PI);
+
+    if (rayAngle < 0) {
+        rayAngle = TWO_PI + rayAngle;
+    }
+
+    return rayAngle;
+}
+
+void castRay(float rayAngle, int stripId) {
+    rayAngle = normalizeAngle(rayAngle);
+
+    bool isRayFacingDown = rayAngle > 0 && rayAngle < PI;
+    bool isRayFacingRight = rayAngle < (PI * 0.5) || rayAngle > (1.5 * PI);
+
+    float xIntercept, yIntercept;
+    float xStep, yStep;
+
+    // Horizontal intersection
+    bool foundHorizontalWall = false;
+    int horizontalWallHitX = 0;
+    int horizontalWallHitY = 0;
+    int horizontalWallContent = 0;
+
+    yIntercept = floor(gamePlayer.y / TILE_SIZE) * TILE_SIZE;
+    yIntercept += isRayFacingDown ? TILE_SIZE : 0;
+
+    xIntercept = gamePlayer.x + (yIntercept - gamePlayer.y) / tan(rayAngle);
+
+    yStep = TILE_SIZE;
+    yStep *= !isRayFacingDown ? -1 : 1;
+
+    xStep = TILE_SIZE / tan(rayAngle);
+    xStep *= (!isRayFacingRight && xStep > 0) ? -1 : 1;
+    xStep *= (isRayFacingRight && xStep < 0) ? -1 : 1;
 }
 
 void drawPlayer() {
