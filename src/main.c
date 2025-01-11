@@ -14,8 +14,10 @@ void movePlayer(float deltaTime);
 void castRays();
 void castRay(float rayAngle, int stripId);
 float normalizeAngle(float rayAngle);
+bool hasWallAtPos(Vector2 mapPos);
 void render();
 void drawMap();
+void drawRays();
 void drawPlayer();
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
@@ -45,11 +47,12 @@ struct Player {
     float turnSpeed;
 } gamePlayer;
 
-struct Ray {
+struct MyRay {
+    float distance;
     float rayAngle;
     Vector2 wallHitPos;
     bool wasHitVertical;
-    bool rayFacings[4];
+    bool rayFacings[4]; // up, down, left, right
     int wallHitContent;
 } rays[NUM_RAYS];
 
@@ -90,23 +93,6 @@ void update() {
     handlePlayerMoveInput();
     movePlayer(deltaTime);
     castRays();
-}
-
-void drawMap() {
-    for (int i=0; i < MAP_NUM_ROWS; i++) {
-        for (int j=0; j < MAP_NUM_COLS; j++) {
-            int tileX = j * TILE_SIZE;
-            int tileY = i * TILE_SIZE;
-            Color tileColour = map[i][j] != 0 ? RAYWHITE : BLACK;
-            DrawRectangle(
-                tileX * MINIMAP_SCALE_FACTOR, 
-                tileY * MINIMAP_SCALE_FACTOR, 
-                TILE_SIZE * MINIMAP_SCALE_FACTOR, 
-                TILE_SIZE * MINIMAP_SCALE_FACTOR, 
-                tileColour
-            );
-        }
-    }
 }
 
 void handlePlayerMoveInput() {
@@ -170,7 +156,7 @@ void castRays() {
 }
 
 float normalizeAngle(float rayAngle) {
-    rayAngle = remainderf(rayAngle, TWO_PI);
+    rayAngle = remainder(rayAngle, TWO_PI);
 
     if (rayAngle < 0) {
         rayAngle = TWO_PI + rayAngle;
@@ -213,7 +199,7 @@ void castRay(float rayAngle, int stripId) {
         float xToCheck = nextHorizontalTouchX;
         float yToCheck = nextHorizontalTouchY + (!isRayFacingDown ? -1 : 0);
 
-        if (/*TODO*/) {
+        if (hasWallAtPos((Vector2){xToCheck, yToCheck})) {
             horizontalWallHitX = nextHorizontalTouchX;
             horizontalWallHitY = nextHorizontalTouchY;
             horizontalWallContent = map[(int)floor(yToCheck/TILE_SIZE)][(int)floor(xToCheck/TILE_SIZE)];
@@ -231,17 +217,17 @@ void castRay(float rayAngle, int stripId) {
     int verticalWallHitY = 0;
     int verticalWallContent = 0;
 
-    yIntercept = floor(gamePlayer.playerPos.x / TILE_SIZE) * TILE_SIZE;
-    yIntercept += isRayFacingRight ? TILE_SIZE : 0;
+    xIntercept = floor(gamePlayer.playerPos.x / TILE_SIZE) * TILE_SIZE;
+    xIntercept += isRayFacingRight ? TILE_SIZE : 0;
 
-    yIntercept = gamePlayer.playerPos.y + (xIntercept - gamePlayer.playerPos.x) / tan(rayAngle);
+    yIntercept = gamePlayer.playerPos.y + (xIntercept - gamePlayer.playerPos.x) * tan(rayAngle);
 
     xStep = TILE_SIZE;
     xStep *= !isRayFacingRight ? -1 : 1;
 
-    yStep = TILE_SIZE / tan(rayAngle);
-    yStep *= (!isRayFacingDown && xStep > 0) ? -1 : 1;
-    yStep *= (isRayFacingDown && xStep < 0) ? -1 : 1;
+    yStep = TILE_SIZE * tan(rayAngle);
+    yStep *= (!isRayFacingDown && yStep > 0) ? -1 : 1;
+    yStep *= (isRayFacingDown && yStep < 0) ? -1 : 1;
 
     float nextVerticalTouchX = xIntercept;
     float nextVerticalTouchY = yIntercept;
@@ -250,7 +236,7 @@ void castRay(float rayAngle, int stripId) {
         float xToCheck = nextVerticalTouchX + (!isRayFacingRight ? -1 : 0);
         float yToCheck = nextVerticalTouchY;
 
-        if (/*TODO*/) {
+        if (hasWallAtPos((Vector2){xToCheck, yToCheck})) {
             verticalWallHitX = nextVerticalTouchX;
             verticalWallHitY = nextVerticalTouchY;
             verticalWallContent = map[(int)floor(yToCheck/TILE_SIZE)][(int)floor(xToCheck/TILE_SIZE)];
@@ -263,6 +249,24 @@ void castRay(float rayAngle, int stripId) {
     }
 
     float horizontalHitDistance = foundHorizontalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){horizontalWallHitX, horizontalWallHitY}) : INT_MAX;
+    float verticalHitDistance = foundVerticalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){verticalWallHitX, verticalWallHitY}) : INT_MAX;
+
+    if (verticalHitDistance < horizontalHitDistance) {
+        rays[stripId].distance = verticalHitDistance;
+        rays[stripId].wallHitPos = (Vector2){verticalWallHitX, verticalWallHitY};
+        rays[stripId].wasHitVertical = true;
+        rays[stripId].wallHitContent = verticalWallContent;
+    } else {
+        rays[stripId].distance = horizontalHitDistance;
+        rays[stripId].wallHitPos = (Vector2){horizontalWallHitX, horizontalWallHitY};
+        rays[stripId].wasHitVertical = false;
+        rays[stripId].wallHitContent = horizontalWallContent;
+    }
+    rays[stripId].rayAngle = rayAngle;
+    rays[stripId].rayFacings[0] = !isRayFacingDown;
+    rays[stripId].rayFacings[1] = isRayFacingDown;
+    rays[stripId].rayFacings[2] = !isRayFacingRight;
+    rays[stripId].rayFacings[3] = isRayFacingRight;
 }
 
 void drawPlayer() {
@@ -282,11 +286,51 @@ void drawPlayer() {
     );
 }
 
+void drawMap() {
+    for (int i=0; i < MAP_NUM_ROWS; i++) {
+        for (int j=0; j < MAP_NUM_COLS; j++) {
+            int tileX = j * TILE_SIZE;
+            int tileY = i * TILE_SIZE;
+            Color tileColour = map[i][j] != 0 ? RAYWHITE : BLACK;
+            DrawRectangle(
+                tileX * MINIMAP_SCALE_FACTOR, 
+                tileY * MINIMAP_SCALE_FACTOR, 
+                TILE_SIZE * MINIMAP_SCALE_FACTOR, 
+                TILE_SIZE * MINIMAP_SCALE_FACTOR, 
+                tileColour
+            );
+        }
+    }
+}
+
+void drawRays() {
+    Vector2 rayDrawStartPos = (Vector2){
+        gamePlayer.playerPos.x + 2.5 * MINIMAP_SCALE_FACTOR,
+        gamePlayer.playerPos.y * MINIMAP_SCALE_FACTOR
+    };
+    for (int i=0; i < NUM_RAYS; i++) {
+        Vector2 currRayPos = (Vector2){
+            rays[i].wallHitPos.x * MINIMAP_SCALE_FACTOR,
+            rays[i].wallHitPos.y * MINIMAP_SCALE_FACTOR
+        };
+        DrawLineV(rayDrawStartPos, currRayPos, RED);
+    }
+}
+
 void render() {
     BeginDrawing();
         ClearBackground(RAYWHITE);
         drawMap();
-        //drawRays();
+        drawRays();
         drawPlayer();
     EndDrawing();
+}
+
+bool hasWallAtPos(Vector2 mapPos) {
+    if (mapPos.x < 0 || mapPos.x > WINDOW_WIDTH || mapPos.y < 0 || mapPos.y > WINDOW_HEIGHT) {
+        return true;
+    }
+    int mapGridIndexX = floor(mapPos.x / TILE_SIZE);
+    int mapGridIndexY = floor(mapPos.y / TILE_SIZE);
+    return map[mapGridIndexY][mapGridIndexX] != 0;
 }
