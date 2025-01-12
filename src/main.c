@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <float.h>
 #include <math.h>
 #include "raylib.h"
 #include "raymath.h"
@@ -16,6 +19,8 @@ void castRay(float rayAngle, int stripId);
 float normalizeAngle(float rayAngle);
 bool hasWallAtPos(Vector2 mapPos);
 void render();
+void floodColourBuffer(Color colour);
+void drawToColourBuffer();
 void drawMap();
 void drawRays();
 void drawPlayer();
@@ -56,6 +61,10 @@ struct MyRay {
     int wallHitContent;
 } rays[NUM_RAYS];
 
+Color* colourBuffer = NULL;
+Image imgFromBuffer;
+Texture2D colourBufferTexture;
+
 int main() 
 {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Raycaster");
@@ -72,6 +81,8 @@ int main()
     }
 
     CloseWindow();
+    UnloadTexture(colourBufferTexture);
+    UnloadImage(imgFromBuffer);
 
     return 0;
 }
@@ -86,6 +97,16 @@ void setup() {
     gamePlayer.rotationAngle = PI / 2;
     gamePlayer.walkSpeed = 100;
     gamePlayer.turnSpeed = 45 * (PI / 180);
+
+    colourBuffer = malloc(WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Color));
+    imgFromBuffer = (Image){ 
+        .data = colourBuffer, 
+        .width = WINDOW_WIDTH, 
+        .height = WINDOW_HEIGHT,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+    };
+    colourBufferTexture = LoadTextureFromImage(imgFromBuffer);
 }
 
 void update() {
@@ -248,8 +269,8 @@ void castRay(float rayAngle, int stripId) {
         }
     }
 
-    float horizontalHitDistance = foundHorizontalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){horizontalWallHitX, horizontalWallHitY}) : INT_MAX;
-    float verticalHitDistance = foundVerticalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){verticalWallHitX, verticalWallHitY}) : INT_MAX;
+    float horizontalHitDistance = foundHorizontalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){horizontalWallHitX, horizontalWallHitY}) : FLT_MAX;
+    float verticalHitDistance = foundVerticalWall ? Vector2Distance(gamePlayer.playerPos, (Vector2){verticalWallHitX, verticalWallHitY}) : FLT_MAX;
 
     if (verticalHitDistance < horizontalHitDistance) {
         rays[stripId].distance = verticalHitDistance;
@@ -269,6 +290,19 @@ void castRay(float rayAngle, int stripId) {
     rays[stripId].rayFacings[3] = isRayFacingRight;
 }
 
+void floodColourBuffer(Color colour) {
+    for (int y=0; y < WINDOW_HEIGHT; y++) {
+        for (int x=0; x < WINDOW_WIDTH; x++) {
+            colourBuffer[(y * WINDOW_WIDTH) + x] = colour;
+        }
+    }
+}
+
+void drawToColourBuffer() {
+    UpdateTexture(colourBufferTexture, colourBuffer);
+    DrawTexture(colourBufferTexture, 0, 0, WHITE);
+}
+
 void drawPlayer() {
     DrawRectangle(
         gamePlayer.playerPos.x * MINIMAP_SCALE_FACTOR, 
@@ -278,10 +312,10 @@ void drawPlayer() {
         YELLOW
     );
     DrawLine(
-        gamePlayer.playerPos.x + 2.5 * MINIMAP_SCALE_FACTOR, 
+        (gamePlayer.playerPos.x + 2.5) * MINIMAP_SCALE_FACTOR, 
         gamePlayer.playerPos.y * MINIMAP_SCALE_FACTOR,
-        gamePlayer.playerPos.x + 2.5 + cos(gamePlayer.rotationAngle) * 40,
-        gamePlayer.playerPos.y + sin(gamePlayer.rotationAngle) * 40,
+        MINIMAP_SCALE_FACTOR * (gamePlayer.playerPos.x + 2.5 + cos(gamePlayer.rotationAngle) * 40),
+        MINIMAP_SCALE_FACTOR * (gamePlayer.playerPos.y + sin(gamePlayer.rotationAngle) * 40),
         YELLOW
     );
 }
@@ -305,7 +339,7 @@ void drawMap() {
 
 void drawRays() {
     Vector2 rayDrawStartPos = (Vector2){
-        gamePlayer.playerPos.x + 2.5 * MINIMAP_SCALE_FACTOR,
+        (gamePlayer.playerPos.x + 2.5) * MINIMAP_SCALE_FACTOR,
         gamePlayer.playerPos.y * MINIMAP_SCALE_FACTOR
     };
     for (int i=0; i < NUM_RAYS; i++) {
@@ -320,6 +354,8 @@ void drawRays() {
 void render() {
     BeginDrawing();
         ClearBackground(RAYWHITE);
+        drawToColourBuffer();
+        floodColourBuffer(BLACK);
         drawMap();
         drawRays();
         drawPlayer();
