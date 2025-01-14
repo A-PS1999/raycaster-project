@@ -21,6 +21,7 @@ bool hasWallAtPos(Vector2 mapPos);
 void render();
 void floodColourBuffer(Color colour);
 void drawToColourBuffer();
+void create3DProjection();
 void drawMap();
 void drawRays();
 void drawPlayer();
@@ -290,6 +291,35 @@ void castRay(float rayAngle, int stripId) {
     rays[stripId].rayFacings[3] = isRayFacingRight;
 }
 
+void create3DProjection() {
+    float distToProjectionPlane = (WINDOW_WIDTH/2) / tan(FOV_ANGLE/2);
+
+    for (int i=0; i < NUM_RAYS; i++) {
+        float perpenDistance = rays[i].distance * cos(rays[i].rayAngle - gamePlayer.rotationAngle);
+        float projectedWallHeight = (TILE_SIZE / perpenDistance) * distToProjectionPlane;
+
+        float wallTopPixel = (WINDOW_HEIGHT/2) - (projectedWallHeight/2);
+        wallTopPixel = wallTopPixel < 0 ? 0 : wallTopPixel;
+
+        float wallBottomPixel = (WINDOW_HEIGHT/2) + (projectedWallHeight/2);
+        wallBottomPixel = wallBottomPixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wallBottomPixel;
+
+        for (int ceilPixel=0; ceilPixel < wallTopPixel; ceilPixel++) {
+            colourBuffer[(WINDOW_WIDTH * ceilPixel) + i] = (Color){ .a = 0xFF, .r = 0xED, .g = 0x9C, .b = 0x05 };
+        }
+
+        for (int wallPixel=wallTopPixel; wallPixel < wallBottomPixel; wallPixel++) {
+            colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = rays[i].wasHitVertical ? 
+                (Color){ .a = 0xFF, .r = 0xFF, .g = 0xFF, .b = 0x00 } :
+                (Color){ .a = 0xFF, .r = 0xFF, .g = 0xDB, .b = 0xBB };
+        }
+
+        for (int floorPixel=wallBottomPixel; floorPixel < WINDOW_HEIGHT; floorPixel++) {
+            colourBuffer[(WINDOW_WIDTH * floorPixel) + i] = (Color){ .a = 0xFF, .r = 0x80, .g = 0x54, .b = 0x04 };
+        }
+    }
+}
+
 void floodColourBuffer(Color colour) {
     for (int y=0; y < WINDOW_HEIGHT; y++) {
         for (int x=0; x < WINDOW_WIDTH; x++) {
@@ -354,8 +384,12 @@ void drawRays() {
 void render() {
     BeginDrawing();
         ClearBackground(RAYWHITE);
+
+        create3DProjection();
+
         drawToColourBuffer();
         floodColourBuffer(BLACK);
+
         drawMap();
         drawRays();
         drawPlayer();
