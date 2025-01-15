@@ -63,6 +63,7 @@ struct MyRay {
 } rays[NUM_RAYS];
 
 Color* colourBuffer = NULL;
+Color* wallTextureBuffer = NULL;
 Image imgFromBuffer;
 Texture2D colourBufferTexture;
 
@@ -84,6 +85,7 @@ int main()
     CloseWindow();
     UnloadTexture(colourBufferTexture);
     UnloadImage(imgFromBuffer);
+    free(wallTextureBuffer);
 
     return 0;
 }
@@ -108,6 +110,16 @@ void setup() {
         .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
     };
     colourBufferTexture = LoadTextureFromImage(imgFromBuffer);
+
+    wallTextureBuffer = malloc(TEXTURE_WIDTH * TEXTURE_HEIGHT * sizeof(Color));
+
+    for (int x=0; x < TEXTURE_WIDTH; x++) {
+        for (int y=0; y < TEXTURE_HEIGHT; y++) {
+            wallTextureBuffer[(TEXTURE_WIDTH * y) + x] = (x % 8 && y % 8) ? 
+                (Color){ .a = 0xFF, .r = 0x00, .g = 0x00, .b = 0xFF } :
+                (Color){ .a = 0xFF, .r = 0x00, .g = 0x00, .b = 0x00 };
+        }
+    }
 }
 
 void update() {
