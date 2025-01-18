@@ -320,10 +320,21 @@ void create3DProjection() {
             colourBuffer[(WINDOW_WIDTH * ceilPixel) + i] = (Color){ .a = 0xFF, .r = 0xED, .g = 0x9C, .b = 0x05 };
         }
 
+        int textureOffsetX;
+
+        if (rays[i].wasHitVertical) {
+            textureOffsetX = (int)rays[i].wallHitPos.y % TILE_SIZE;
+        } else {
+            textureOffsetX = (int)rays[i].wallHitPos.x % TILE_SIZE;
+        }
+
         for (int wallPixel=wallTopPixel; wallPixel < wallBottomPixel; wallPixel++) {
-            colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = rays[i].wasHitVertical ? 
-                (Color){ .a = 0xFF, .r = 0xFF, .g = 0xFF, .b = 0x00 } :
-                (Color){ .a = 0xFF, .r = 0xFF, .g = 0xDB, .b = 0xBB };
+            int distanceFromTop = wallPixel + (projectedWallHeight / 2) - (WINDOW_HEIGHT / 2);
+            int textureOffsetY = distanceFromTop * ((float)TEXTURE_HEIGHT / projectedWallHeight);
+
+            Color texelColor = wallTextureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
+
+            colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = texelColor;
         }
 
         for (int floorPixel=wallBottomPixel; floorPixel < WINDOW_HEIGHT; floorPixel++) {
