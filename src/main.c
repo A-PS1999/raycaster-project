@@ -8,6 +8,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "constants.h"
+#include "textures.h"
 
 void setup();
 void update();
@@ -28,18 +29,18 @@ void drawPlayer();
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5}
 };
 
 struct Player {
@@ -63,7 +64,7 @@ struct MyRay {
 } rays[NUM_RAYS];
 
 Color* colourBuffer = NULL;
-Color* wallTextureBuffer = NULL;
+Color* textures[NUM_TEXTURES];
 Image imgFromBuffer;
 Texture2D colourBufferTexture;
 
@@ -85,7 +86,6 @@ int main()
     CloseWindow();
     UnloadTexture(colourBufferTexture);
     UnloadImage(imgFromBuffer);
-    free(wallTextureBuffer);
 
     return 0;
 }
@@ -111,15 +111,14 @@ void setup() {
     };
     colourBufferTexture = LoadTextureFromImage(imgFromBuffer);
 
-    wallTextureBuffer = malloc(TEXTURE_WIDTH * TEXTURE_HEIGHT * sizeof(Color));
-
-    for (int x=0; x < TEXTURE_WIDTH; x++) {
-        for (int y=0; y < TEXTURE_HEIGHT; y++) {
-            wallTextureBuffer[(TEXTURE_WIDTH * y) + x] = (x % 8 && y % 8) ? 
-                (Color){ .a = 0xFF, .r = 0x00, .g = 0x00, .b = 0xFF } :
-                (Color){ .a = 0xFF, .r = 0x00, .g = 0x00, .b = 0x00 };
-        }
-    }
+    textures[0] = (Color*)REDBRICK_TEXTURE;
+    textures[1] = (Color*)PURPLESTONE_TEXTURE;
+    textures[2] = (Color*)MOSSYSTONE_TEXTURE;
+    textures[3] = (Color*)GRAYSTONE_TEXTURE;
+    textures[4] = (Color*)COLORSTONE_TEXTURE;
+    textures[5] = (Color*)BLUESTONE_TEXTURE;
+    textures[6] = (Color*)WOOD_TEXTURE;
+    textures[7] = (Color*)EAGLE_TEXTURE;
 }
 
 void update() {
@@ -317,7 +316,7 @@ void create3DProjection() {
         wallBottomPixel = wallBottomPixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wallBottomPixel;
 
         for (int ceilPixel=0; ceilPixel < wallTopPixel; ceilPixel++) {
-            colourBuffer[(WINDOW_WIDTH * ceilPixel) + i] = (Color){ .a = 0xFF, .r = 0xED, .g = 0x9C, .b = 0x05 };
+            colourBuffer[(WINDOW_WIDTH * ceilPixel) + i] = (Color){ .a = 0xFF, .r = 0x8A, .g = 0x89, .b = 0x88 };
         }
 
         int textureOffsetX;
@@ -328,17 +327,19 @@ void create3DProjection() {
             textureOffsetX = (int)rays[i].wallHitPos.x % TILE_SIZE;
         }
 
+        int textureIdx = rays[i].wallHitContent-1;
+
         for (int wallPixel=wallTopPixel; wallPixel < wallBottomPixel; wallPixel++) {
             int distanceFromTop = wallPixel + (projectedWallHeight / 2) - (WINDOW_HEIGHT / 2);
             int textureOffsetY = distanceFromTop * ((float)TEXTURE_HEIGHT / projectedWallHeight);
 
-            Color texelColor = wallTextureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
+            Color texelColor = textures[textureIdx][(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
 
             colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = texelColor;
         }
 
         for (int floorPixel=wallBottomPixel; floorPixel < WINDOW_HEIGHT; floorPixel++) {
-            colourBuffer[(WINDOW_WIDTH * floorPixel) + i] = (Color){ .a = 0xFF, .r = 0x80, .g = 0x54, .b = 0x04 };
+            colourBuffer[(WINDOW_WIDTH * floorPixel) + i] = (Color){ .a = 0xFF, .r = 0xB3, .g = 0xB2, .b = 0xB1 };
         }
     }
 }

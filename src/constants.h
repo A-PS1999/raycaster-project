@@ -8,6 +8,7 @@
 
 #define TEXTURE_WIDTH 64
 #define TEXTURE_HEIGHT 64
+#define NUM_TEXTURES 8
 
 #define TWO_PI 6.28318530
 
