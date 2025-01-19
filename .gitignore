@@ -42,8 +42,6 @@
 *.idb
 *.pdb
 
-textures.h
-
 # Kernel Module Compile Results
 *.mod*
 *.cmd
@@ -55,3 +53,4 @@ dkms.conf
 
 # Misc
 .vscode
+*.png

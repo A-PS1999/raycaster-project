@@ -4,11 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <float.h>
-#include <math.h>
-#include "raylib.h"
+#include "textures.h"
 #include "raymath.h"
 #include "constants.h"
-#include "textures.h"
 
 void setup();
 void update();
@@ -26,6 +24,7 @@ void create3DProjection();
 void drawMap();
 void drawRays();
 void drawPlayer();
+void freeMemory();
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
@@ -64,9 +63,9 @@ struct MyRay {
 } rays[NUM_RAYS];
 
 Color* colourBuffer = NULL;
-Color* textures[NUM_TEXTURES];
 Image imgFromBuffer;
 Texture2D colourBufferTexture;
+float distToProjectionPlane;
 
 int main() 
 {
@@ -91,6 +90,8 @@ int main()
 }
 
 void setup() {
+    distToProjectionPlane = PROJ_PLANE_DIST;
+
     gamePlayer.playerPos.x = WINDOW_WIDTH / 2;
     gamePlayer.playerPos.y = WINDOW_HEIGHT / 2;
     gamePlayer.width = 5;
@@ -111,14 +112,7 @@ void setup() {
     };
     colourBufferTexture = LoadTextureFromImage(imgFromBuffer);
 
-    textures[0] = (Color*)REDBRICK_TEXTURE;
-    textures[1] = (Color*)PURPLESTONE_TEXTURE;
-    textures[2] = (Color*)MOSSYSTONE_TEXTURE;
-    textures[3] = (Color*)GRAYSTONE_TEXTURE;
-    textures[4] = (Color*)COLORSTONE_TEXTURE;
-    textures[5] = (Color*)BLUESTONE_TEXTURE;
-    textures[6] = (Color*)WOOD_TEXTURE;
-    textures[7] = (Color*)EAGLE_TEXTURE;
+    loadWallTextures();
 }
 
 void update() {
@@ -126,6 +120,13 @@ void update() {
     handlePlayerMoveInput();
     movePlayer(deltaTime);
     castRays();
+}
+
+void freeMemory() {
+    free(colourBuffer);
+    UnloadTexture(colourBufferTexture);
+    UnloadImage(imgFromBuffer);
+    freeWallTextures();
 }
 
 void handlePlayerMoveInput() {
@@ -179,12 +180,9 @@ bool wouldCollide(float newX, float newY) {
 }
 
 void castRays() {
-    float rayAngle = gamePlayer.rotationAngle - (FOV_ANGLE / 2);
-
-    for (int stripId = 0; stripId < NUM_RAYS; stripId++) {
-        castRay(rayAngle, stripId);
-
-        rayAngle += FOV_ANGLE / NUM_RAYS;
+    for (int col=0; col < NUM_RAYS; col++) {
+        float rayAngle = gamePlayer.rotationAngle + atan2((col - NUM_RAYS/2), distToProjectionPlane);
+        castRay(rayAngle, col);
     }
 }
 
@@ -333,7 +331,7 @@ void create3DProjection() {
             int distanceFromTop = wallPixel + (projectedWallHeight / 2) - (WINDOW_HEIGHT / 2);
             int textureOffsetY = distanceFromTop * ((float)TEXTURE_HEIGHT / projectedWallHeight);
 
-            Color texelColor = textures[textureIdx][(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
+            Color texelColor = wallTextures[textureIdx].textureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
 
             colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = texelColor;
         }
