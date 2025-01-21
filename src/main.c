@@ -58,7 +58,6 @@ struct MyRay {
     float rayAngle;
     Vector2 wallHitPos;
     bool wasHitVertical;
-    bool rayFacings[4]; // up, down, left, right
     int wallHitContent;
 } rays[NUM_RAYS];
 
@@ -226,7 +225,8 @@ void castRay(float rayAngle, int stripId) {
     float nextHorizontalTouchX = xIntercept;
     float nextHorizontalTouchY = yIntercept;
 
-    while (nextHorizontalTouchX >= 0 && nextHorizontalTouchX <= WINDOW_WIDTH && nextHorizontalTouchY >= 0 && nextHorizontalTouchY <= WINDOW_HEIGHT) {
+    while ((nextHorizontalTouchX >= 0 && nextHorizontalTouchX <= MAP_NUM_COLS * TILE_SIZE) && 
+        (nextHorizontalTouchY >= 0 && nextHorizontalTouchY <= MAP_NUM_ROWS * TILE_SIZE)) {
         float xToCheck = nextHorizontalTouchX;
         float yToCheck = nextHorizontalTouchY + (!isRayFacingDown ? -1 : 0);
 
@@ -263,7 +263,8 @@ void castRay(float rayAngle, int stripId) {
     float nextVerticalTouchX = xIntercept;
     float nextVerticalTouchY = yIntercept;
 
-    while (nextVerticalTouchX >= 0 && nextVerticalTouchX <= WINDOW_WIDTH && nextVerticalTouchY >= 0 && nextVerticalTouchY <= WINDOW_HEIGHT) {
+    while ((nextVerticalTouchX >= 0 && nextVerticalTouchX <= MAP_NUM_COLS * TILE_SIZE) && 
+        (nextVerticalTouchY >= 0 && nextVerticalTouchY <= MAP_NUM_ROWS * TILE_SIZE)) {
         float xToCheck = nextVerticalTouchX + (!isRayFacingRight ? -1 : 0);
         float yToCheck = nextVerticalTouchY;
 
@@ -294,10 +295,6 @@ void castRay(float rayAngle, int stripId) {
         rays[stripId].wallHitContent = horizontalWallContent;
     }
     rays[stripId].rayAngle = rayAngle;
-    rays[stripId].rayFacings[0] = !isRayFacingDown;
-    rays[stripId].rayFacings[1] = isRayFacingDown;
-    rays[stripId].rayFacings[2] = !isRayFacingRight;
-    rays[stripId].rayFacings[3] = isRayFacingRight;
 }
 
 void create3DProjection() {
@@ -343,10 +340,8 @@ void create3DProjection() {
 }
 
 void floodColourBuffer(Color colour) {
-    for (int y=0; y < WINDOW_HEIGHT; y++) {
-        for (int x=0; x < WINDOW_WIDTH; x++) {
-            colourBuffer[(y * WINDOW_WIDTH) + x] = colour;
-        }
+    for (int i=0; i < WINDOW_HEIGHT * WINDOW_WIDTH; i++) {
+        colourBuffer[i] = colour;
     }
 }
 
@@ -419,7 +414,7 @@ void render() {
 }
 
 bool hasWallAtPos(Vector2 mapPos) {
-    if (mapPos.x < 0 || mapPos.x > WINDOW_WIDTH || mapPos.y < 0 || mapPos.y > WINDOW_HEIGHT) {
+    if (mapPos.x < 0 || mapPos.x >= MAP_NUM_COLS * TILE_SIZE || mapPos.y < 0 || mapPos.y >= MAP_NUM_ROWS * TILE_SIZE) {
         return true;
     }
     int mapGridIndexX = floor(mapPos.x / TILE_SIZE);
