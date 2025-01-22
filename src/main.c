@@ -7,6 +7,7 @@
 #include "textures.h"
 #include "raymath.h"
 #include "constants.h"
+#include "graphics.h"
 
 void setup();
 void update();
@@ -24,7 +25,7 @@ void create3DProjection();
 void drawMap();
 void drawRays();
 void drawPlayer();
-void freeMemory();
+void releaseResources();
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
@@ -61,9 +62,6 @@ struct MyRay {
     int wallHitContent;
 } rays[NUM_RAYS];
 
-Color* colourBuffer = NULL;
-Image imgFromBuffer;
-Texture2D colourBufferTexture;
 float distToProjectionPlane;
 
 int main() 
@@ -82,8 +80,6 @@ int main()
     }
 
     CloseWindow();
-    UnloadTexture(colourBufferTexture);
-    UnloadImage(imgFromBuffer);
 
     return 0;
 }
@@ -101,15 +97,7 @@ void setup() {
     gamePlayer.walkSpeed = 100;
     gamePlayer.turnSpeed = 45 * (PI / 180);
 
-    colourBuffer = malloc(WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Color));
-    imgFromBuffer = (Image){ 
-        .data = colourBuffer, 
-        .width = WINDOW_WIDTH, 
-        .height = WINDOW_HEIGHT,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-    };
-    colourBufferTexture = LoadTextureFromImage(imgFromBuffer);
+    initColourBuffer();
 
     loadWallTextures();
 }
@@ -121,11 +109,9 @@ void update() {
     castRays();
 }
 
-void freeMemory() {
-    free(colourBuffer);
-    UnloadTexture(colourBufferTexture);
-    UnloadImage(imgFromBuffer);
+void releaseResources() {
     freeWallTextures();
+    freeMemory();
 }
 
 void handlePlayerMoveInput() {
@@ -311,7 +297,7 @@ void create3DProjection() {
         wallBottomPixel = wallBottomPixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wallBottomPixel;
 
         for (int ceilPixel=0; ceilPixel < wallTopPixel; ceilPixel++) {
-            colourBuffer[(WINDOW_WIDTH * ceilPixel) + i] = (Color){ .a = 0xFF, .r = 0x8A, .g = 0x89, .b = 0x88 };
+            drawPixelAt(i, ceilPixel, (Color){ .a = 0xFF, .r = 0x8A, .g = 0x89, .b = 0x88 });
         }
 
         int textureOffsetX;
@@ -330,24 +316,13 @@ void create3DProjection() {
 
             Color texelColor = wallTextures[textureIdx].textureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
 
-            colourBuffer[(WINDOW_WIDTH * wallPixel) + i] = texelColor;
+            drawPixelAt(i, wallPixel, texelColor);
         }
 
         for (int floorPixel=wallBottomPixel; floorPixel < WINDOW_HEIGHT; floorPixel++) {
-            colourBuffer[(WINDOW_WIDTH * floorPixel) + i] = (Color){ .a = 0xFF, .r = 0xB3, .g = 0xB2, .b = 0xB1 };
+            drawPixelAt(i, floorPixel, (Color){ .a = 0xFF, .r = 0xB3, .g = 0xB2, .b = 0xB1 });
         }
     }
-}
-
-void floodColourBuffer(Color colour) {
-    for (int i=0; i < WINDOW_HEIGHT * WINDOW_WIDTH; i++) {
-        colourBuffer[i] = colour;
-    }
-}
-
-void drawToColourBuffer() {
-    UpdateTexture(colourBufferTexture, colourBuffer);
-    DrawTexture(colourBufferTexture, 0, 0, WHITE);
 }
 
 void drawPlayer() {
@@ -405,7 +380,6 @@ void render() {
         create3DProjection();
 
         drawToColourBuffer();
-        floodColourBuffer(BLACK);
 
         drawMap();
         drawRays();
