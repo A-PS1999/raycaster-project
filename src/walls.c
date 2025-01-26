@@ -5,6 +5,12 @@
 #include "player.h"
 #include "textures.h"
 
+void changeColourIntensity(Color* colour, float factor) {
+    colour->r *= factor;
+    colour->g *= factor;
+    colour->b *= factor;
+}
+
 void create3DProjection() {
     for (int i=0; i < NUM_RAYS; i++) {
         float perpenDistance = rays[i].distance * cos(rays[i].rayAngle - player.rotationAngle);
@@ -35,6 +41,10 @@ void create3DProjection() {
             int textureOffsetY = distanceFromTop * ((float)TEXTURE_HEIGHT / projectedWallHeight);
 
             Color texelColor = wallTextures[textureIdx].textureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
+
+            if (rays[i].wasHitVertical) {
+                changeColourIntensity(&texelColor, 0.7);
+            }
 
             drawPixelAt(i, wallPixel, texelColor);
         }

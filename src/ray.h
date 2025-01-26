@@ -18,6 +18,6 @@ extern MyRay rays[NUM_RAYS];
 void drawRays();
 void castRays();
 void castRay(float rayAngle, int stripId);
-float normalizeAngle(float rayAngle);
+void normalizeAngle(float* rayAngle);
 
 #endif

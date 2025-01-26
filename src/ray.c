@@ -14,7 +14,7 @@ void castRays() {
 }
 
 void castRay(float rayAngle, int stripId) {
-    rayAngle = normalizeAngle(rayAngle);
+    normalizeAngle(&rayAngle);
 
     bool isRayFacingDown = rayAngle > 0 && rayAngle < PI;
     bool isRayFacingRight = rayAngle < (PI * 0.5) || rayAngle > (1.5 * PI);
@@ -127,12 +127,10 @@ void drawRays() {
     }
 }
 
-float normalizeAngle(float rayAngle) {
-    rayAngle = remainder(rayAngle, TWO_PI);
+void normalizeAngle(float* rayAngle) {
+    *rayAngle = remainder(*rayAngle, TWO_PI);
 
-    if (rayAngle < 0) {
-        rayAngle = TWO_PI + rayAngle;
+    if (*rayAngle < 0) {
+        *rayAngle = TWO_PI + *rayAngle;
     }
-
-    return rayAngle;
 }
