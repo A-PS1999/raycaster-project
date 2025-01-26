@@ -1,6 +1,8 @@
 #include "ray.h"
-#include "player.h"
 #include <float.h>
+#include "player.h"
+#include "map.h"
+#include "raymath.h"
 
 MyRay rays[NUM_RAYS];
 
