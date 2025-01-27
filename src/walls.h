@@ -4,6 +4,6 @@
 #include "raylib.h"
 
 void changeColourIntensity(Color* colour, float factor);
-void create3DProjection();
+void create3DWallProjection();
 
 #endif

@@ -9,6 +9,8 @@
 #include "map.h"
 #include "ray.h"
 #include "player.h"
+#include "sprites.h"
+#include "walls.h"
 
 void setup();
 void update();
@@ -39,7 +41,7 @@ int main()
 
 void setup() {
     initColourBuffer();
-    loadWallTextures();
+    loadTextures();
 }
 
 void update() {
@@ -50,7 +52,7 @@ void update() {
 }
 
 void releaseResources() {
-    freeWallTextures();
+    freeTextures();
     freeMemory();
 }
 
@@ -58,12 +60,14 @@ void render() {
     BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        create3DProjection();
+        create3DWallProjection();
+        createSpriteProjection();
 
         drawToColourBuffer();
 
         drawMap();
         drawRays();
+        drawMinimapSprites();
         drawPlayer();
     EndDrawing();
 }

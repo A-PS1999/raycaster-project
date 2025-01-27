@@ -1,4 +1,5 @@
 #include "textures.h"
+#include <stdio.h>
 
 static char* textureFileNames[NUM_TEXTURES] = {
     "./resources/redbrick.png",
@@ -12,27 +13,26 @@ static char* textureFileNames[NUM_TEXTURES] = {
     "./resources/pikuma.png"
 };
 
-texture_t wallTextures[NUM_TEXTURES];
+upng_t* textures[NUM_TEXTURES];
 
-void loadWallTextures() {
+void loadTextures() {
     for (int i=0; i < NUM_TEXTURES; i++) {
-        upng_t* upng;
-
-        upng = upng_new_from_file(textureFileNames[i]);
+        upng_t* upng = upng_new_from_file(textureFileNames[i]);
         if (upng != NULL) {
             upng_decode(upng);
             if (upng_get_error(upng) == UPNG_EOK) {
-                wallTextures[i].width = upng_get_width(upng);
-                wallTextures[i].height = upng_get_height(upng);
-                wallTextures[i].textureBuffer = (Color*)upng_get_buffer(upng);
-                wallTextures[i].upngTexture = upng;
+                textures[i] = upng;
+            } else {
+                printf("Error when decoding texture %s\n", textureFileNames[i]);
             }
+        } else {
+            printf("Error loading texture %s\n", textureFileNames[i]);
         }
     }
 }
 
-void freeWallTextures() {
+void freeTextures() {
     for (int i=0; i < NUM_TEXTURES; i++) {
-        upng_free(wallTextures[i].upngTexture);
+        upng_free(textures[i]);
     }
 }

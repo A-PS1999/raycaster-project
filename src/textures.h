@@ -6,16 +6,9 @@
 #include "upng.h"
 #include "raylib.h"
 
-typedef struct {
-    int width;
-    int height;
-    Color* textureBuffer;
-    upng_t* upngTexture;
-} texture_t;
+extern upng_t* textures[NUM_TEXTURES];
 
-extern texture_t wallTextures[NUM_TEXTURES];
-
-void loadWallTextures();
-void freeWallTextures();
+void loadTextures();
+void freeTextures();
 
 #endif

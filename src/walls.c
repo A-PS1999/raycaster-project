@@ -11,7 +11,7 @@ void changeColourIntensity(Color* colour, float factor) {
     colour->b *= factor;
 }
 
-void create3DProjection() {
+void create3DWallProjection() {
     for (int i=0; i < NUM_RAYS; i++) {
         float perpenDistance = rays[i].distance * cos(rays[i].rayAngle - player.rotationAngle);
         float projectedWallHeight = (TILE_SIZE / perpenDistance) * PROJ_PLANE_DIST;
@@ -40,7 +40,8 @@ void create3DProjection() {
             int distanceFromTop = wallPixel + (projectedWallHeight / 2) - (WINDOW_HEIGHT / 2);
             int textureOffsetY = distanceFromTop * ((float)TEXTURE_HEIGHT / projectedWallHeight);
 
-            Color texelColor = wallTextures[textureIdx].textureBuffer[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
+            Color* bufferAsColor = (Color*)upng_get_buffer(textures[textureIdx]);
+            Color texelColor = bufferAsColor[(TEXTURE_WIDTH * textureOffsetY) + textureOffsetX];
 
             if (rays[i].wasHitVertical) {
                 changeColourIntensity(&texelColor, 0.7);
