@@ -1,6 +1,6 @@
 #include "player.h"
-#include "constants.h"
 #include "map.h"
+#include "ray.h"
 
 Player player = {
     .playerPos.x = WINDOW_WIDTH / 2,
@@ -43,6 +43,7 @@ void handlePlayerMoveInput() {
 
 void movePlayer(float deltaTime) {
     player.rotationAngle += player.turnDirection * player.turnSpeed * deltaTime;
+    normalizeAngle(&player.rotationAngle);
     float moveStep = player.walkDirection * player.walkSpeed * deltaTime;
     
     float newPlayerX = player.playerPos.x + cos(player.rotationAngle) * moveStep;

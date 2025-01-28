@@ -1,12 +1,15 @@
 #ifndef SPRITES_H
 #define SPRITES_H
 
+#include <stdbool.h>
+#include "raylib.h"
+
 typedef struct {
-    float xPos;
-    float yPos;
+    Vector2 pos;
     float distance;
     float angle;
     int textureId;
+    bool visible;
 } sprite_t;
 
 void createSpriteProjection();
