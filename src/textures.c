@@ -10,7 +10,12 @@ static char* textureFileNames[NUM_TEXTURES] = {
     "./resources/bluestone.png",
     "./resources/wood.png",
     "./resources/eagle.png",
-    "./resources/pikuma.png"
+    "./resources/pikuma.png",
+    "./resources/barrel.png",
+    "./resources/light.png",
+    "./resources/table.png",
+    "./resources/guard.png",
+    "./resources/armor.png",
 };
 
 upng_t* textures[NUM_TEXTURES];
