@@ -10,7 +10,7 @@ typedef struct {
     float rayAngle;
     Vector2 wallHitPos;
     bool wasHitVertical;
-    int wallHitContent;
+    int wallTextureIdx;
 } MyRay;
 
 extern MyRay rays[NUM_RAYS];

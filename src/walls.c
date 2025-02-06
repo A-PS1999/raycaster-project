@@ -34,7 +34,7 @@ void create3DWallProjection() {
             textureOffsetX = (int)rays[i].wallHitPos.x % TILE_SIZE;
         }
 
-        int textureIdx = rays[i].wallHitContent-1;
+        int textureIdx = rays[i].wallTextureIdx-1;
 
         for (int wallPixel=wallTopPixel; wallPixel < wallBottomPixel; wallPixel++) {
             int distanceFromTop = wallPixel + (projectedWallHeight / 2) - (WINDOW_HEIGHT / 2);

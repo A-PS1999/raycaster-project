@@ -4,12 +4,20 @@
 #include "player.h"
 #include "textures.h"
 #include "graphics.h"
+#include "ray.h"
+#include <stdlib.h>
 
 static sprite_t sprites[NUM_SPRITES] = {
     { .pos.x = 850, .pos.y = 630, .textureId = 9, .angle = 0, .distance = 0, .visible = false },
     { .pos.x = 500, .pos.y = 600, .textureId = 11, .angle = 0, .distance = 0, .visible = false },
-    { .pos.x = 420, .pos.y = 220, .textureId = 12, .angle = 0, .distance = 0, .visible = false }
+    { .pos.x = 500, .pos.y = 600, .textureId = 10, .angle = 0, .distance = 0, .visible = false },
+    { .pos.x = 420, .pos.y = 220, .textureId = 12, .angle = 0, .distance = 0, .visible = false },
+    { .pos.x = 90, .pos.y = 100, .textureId = 13, .angle = 0, .distance = 0, .visible = false },
 };
+
+int distCompare(const void* spriteA, const void* spriteB) {
+    return ((sprite_t*)spriteA)->distance - ((sprite_t*)spriteB)->distance;
+}
 
 void createSpriteProjection() {
     sprite_t visibleSprites[NUM_SPRITES];
@@ -34,10 +42,14 @@ void createSpriteProjection() {
         }
     }
 
+    qsort(visibleSprites, numVisible, sizeof(sprite_t), distCompare);
+
     for (int j=0; j < numVisible; j++) {
         sprite_t currSprite = visibleSprites[j];
 
-        float spriteProjHeight = (TILE_SIZE / currSprite.distance) * PROJ_PLANE_DIST;
+        float perpenDist = currSprite.distance * cos(currSprite.angle);
+
+        float spriteProjHeight = (TILE_SIZE / perpenDist) * PROJ_PLANE_DIST;
         float spriteProjWidth = spriteProjHeight;
 
         float spriteTopY = (WINDOW_HEIGHT / 2) - (spriteProjHeight / 2);
@@ -69,7 +81,7 @@ void createSpriteProjection() {
                     Color texelColor = spriteTexBuffer[(textureWidth * textureOffsetY) + textureOffsetX];
                     bool isMagenta = (texelColor.r == 0xFF && texelColor.g == 0x00 && texelColor.b == 0xFF && texelColor.a == 0xFF);
 
-                    if (!isMagenta) {
+                    if (!isMagenta && currSprite.distance < rays[x].distance) {
                         drawPixelAt(x, y, texelColor);
                     }
                 }

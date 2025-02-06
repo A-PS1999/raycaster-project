@@ -19,7 +19,7 @@
 #define TEXTURE_WIDTH 64
 #define TEXTURE_HEIGHT 64
 #define NUM_TEXTURES 14
-#define NUM_SPRITES 3
+#define NUM_SPRITES 5
 
 #define TWO_PI 6.28318530
 
